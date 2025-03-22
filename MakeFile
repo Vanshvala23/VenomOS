@@ -1,0 +1,42 @@
+# Define the output files
+OUTPUT_ISO = myos.iso
+OUTPUT_BIN = myos.bin
+BOOT_OBJ = boot.o
+KERNEL_OBJ = kernel.o
+KERNEL_BIN = kernel.bin
+
+# Compiler and assembler settings
+CC = x86_64-elf-gcc
+LD = x86_64-elf-ld
+ASM = nasm
+
+CFLAGS = -ffreestanding -m32 -c
+LDFLAGS = -T linker.ld
+
+all: $(OUTPUT_ISO)
+
+# Assemble the bootloader
+$(BOOT_OBJ): boot.asm
+	$(ASM) -f bin boot.asm -o $(BOOT_OBJ)
+
+# Compile the kernel
+$(KERNEL_OBJ): kernel.c
+	$(CC) $(CFLAGS) kernel.c -o $(KERNEL_OBJ)
+
+# Link the kernel
+$(KERNEL_BIN): $(KERNEL_OBJ)
+	$(LD) $(LDFLAGS) -o $(KERNEL_BIN) $(KERNEL_OBJ)
+
+# Create the final binary
+$(OUTPUT_BIN): $(BOOT_OBJ) $(KERNEL_BIN)
+	cat $(BOOT_OBJ) $(KERNEL_BIN) > $(OUTPUT_BIN)
+
+# Create the bootable ISO
+$(OUTPUT_ISO): $(OUTPUT_BIN)
+	mkdir -p iso/boot
+	cp $(OUTPUT_BIN) iso/boot/$(OUTPUT_BIN)
+	grub-mkrescue -o $(OUTPUT_ISO) iso
+
+# Clean build files
+clean:
+	rm -rf *.o *.bin *.iso iso
