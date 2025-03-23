@@ -1,22 +1,39 @@
-all: os-image.bin
+# Compiler and assembler settings
+CC=gcc
+AS=nasm
+LD=ld
+CFLAGS=-ffreestanding -m32 -c
+LDFLAGS=-m elf_i386 -T linker.ld
 
-boot.bin: boot.asm
-	nasm -f bin boot.asm -o boot.bin
+# Files
+BOOTLOADER=boot.asm
+KERNEL=kernel.c
+TERMINAL=terminal.c
+OBJECTS=kernel.o terminal.o
+BOOT_BIN=boot.bin
+KERNEL_BIN=kernel.bin
+OS_IMAGE=os-image.bin
 
-kernel.o: kernel.c
-	gcc -ffreestanding -m32 -c kernel.c -o kernel.o
+# Targets
+all: $(OS_IMAGE)
 
-terminal.o: terminal.c
-	gcc -ffreestanding -m32 -c terminal.c -o terminal.o
+$(BOOT_BIN): $(BOOTLOADER)
+	$(AS) -f bin $< -o $@
 
-kernel.bin: kernel.o terminal.o
-	ld -m elf_i386 -T linker.ld -o kernel.bin kernel.o terminal.o
+kernel.o: $(KERNEL)
+	$(CC) $(CFLAGS) $< -o $@
 
-os-image.bin: boot.bin kernel.bin
-	cat boot.bin kernel.bin > os-image.bin
+terminal.o: $(TERMINAL)
+	$(CC) $(CFLAGS) $< -o $@
 
-run:
-	qemu-system-i386 -drive format=raw,file=os-image.bin
+$(KERNEL_BIN): $(OBJECTS)
+	$(LD) $(LDFLAGS) -o $@ $(OBJECTS)
+
+$(OS_IMAGE): $(BOOT_BIN) $(KERNEL_BIN)
+	cat $(BOOT_BIN) $(KERNEL_BIN) > $@
+
+run: $(OS_IMAGE)
+	qemu-system-i386 -drive format=raw,file=$(OS_IMAGE)
 
 clean:
-	rm -f *.bin *.o
+	rm -f *.o *.bin $(OS_IMAGE)
