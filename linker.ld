@@ -1,8 +1,7 @@
-ENTRY(kernel_main)
+ENTRY(start32)
 
-SECTIONS
-{
-    . = 0x1000;
+SECTIONS {
+    . = 1M;
     .text : { *(.text) }
     .data : { *(.data) }
     .bss  : { *(.bss) }
