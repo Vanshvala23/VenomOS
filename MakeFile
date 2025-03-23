@@ -37,3 +37,4 @@ run: $(OS_IMAGE)
 
 clean:
 	rm -f *.o *.bin $(OS_IMAGE)
+`
