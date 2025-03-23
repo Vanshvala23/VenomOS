@@ -1,42 +1,22 @@
-# Define the output files
-OUTPUT_ISO = myos.iso
-OUTPUT_BIN = myos.bin
-BOOT_OBJ = boot.o
-KERNEL_OBJ = kernel.o
-KERNEL_BIN = kernel.bin
+all: os-image.bin
 
-# Compiler and assembler settings
-CC = x86_64-elf-gcc
-LD = x86_64-elf-ld
-ASM = nasm
+boot.bin: boot.asm
+	nasm -f bin boot.asm -o boot.bin
 
-CFLAGS = -ffreestanding -m32 -c
-LDFLAGS = -T linker.ld
+kernel.o: kernel.c
+	gcc -ffreestanding -m32 -c kernel.c -o kernel.o
 
-all: $(OUTPUT_ISO)
+terminal.o: terminal.c
+	gcc -ffreestanding -m32 -c terminal.c -o terminal.o
 
-# Assemble the bootloader
-$(BOOT_OBJ): boot.asm
-	$(ASM) -f bin boot.asm -o $(BOOT_OBJ)
+kernel.bin: kernel.o terminal.o
+	ld -m elf_i386 -T linker.ld -o kernel.bin kernel.o terminal.o
 
-# Compile the kernel
-$(KERNEL_OBJ): kernel.c
-	$(CC) $(CFLAGS) kernel.c -o $(KERNEL_OBJ)
+os-image.bin: boot.bin kernel.bin
+	cat boot.bin kernel.bin > os-image.bin
 
-# Link the kernel
-$(KERNEL_BIN): $(KERNEL_OBJ)
-	$(LD) $(LDFLAGS) -o $(KERNEL_BIN) $(KERNEL_OBJ)
+run:
+	qemu-system-i386 -drive format=raw,file=os-image.bin
 
-# Create the final binary
-$(OUTPUT_BIN): $(BOOT_OBJ) $(KERNEL_BIN)
-	cat $(BOOT_OBJ) $(KERNEL_BIN) > $(OUTPUT_BIN)
-
-# Create the bootable ISO
-$(OUTPUT_ISO): $(OUTPUT_BIN)
-	mkdir -p iso/boot
-	cp $(OUTPUT_BIN) iso/boot/$(OUTPUT_BIN)
-	grub-mkrescue -o $(OUTPUT_ISO) iso
-
-# Clean build files
 clean:
-	rm -rf *.o *.bin *.iso iso
+	rm -f *.bin *.o
